@@ -1,8 +1,8 @@
 name: Daily Slack Notification
 
 on:
-  schedule:
-    - cron: "0 11 * * 1-5"
+  # schedule:
+  #   - cron: "0 11 * * 1-5"
   workflow_dispatch:
 
 jobs:
