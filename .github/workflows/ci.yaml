@@ -1,0 +1,30 @@
+name: Daily Slack Notification
+
+on:
+  schedule:
+    - cron: "0 11 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  daily-slack-notification:
+    name: Send Notification to Slack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository Checkout
+        uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install Dependencies
+        run: pip install requests
+
+      - name: Run Python Script
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          SLACK_MEMBERS: ${{ vars.SLACK_MEMBERS }}
+        run: python scripts/daily_slack.py
