@@ -2,7 +2,10 @@
 
 O **Daily Slack Notification** é um bot automatizado para o Slack que agenda e anuncia a reunião diária de *stand-up*, destacando quem será responsável pela apresentação do dia. 🚀
 
-Este bot cria uma API no Slack usando um Slack App com as permissões necessárias para enviar mensagens a um canal específico.
+Este projeto oferece duas opções de integração:
+
+1. **Python + GitHub Actions + Slack API**, usando um Slack App e um token de autenticação.
+2. **Google Apps Script + Slack Workflow + Webhook**, sem a necessidade de manter um ambiente Python ou um workflow do GitHub Actions.
 
 ---
 
@@ -22,6 +25,7 @@ O processo é totalmente automatizado por meio do GitHub Actions, permitindo a e
 - ✅ Menção correta do apresentador no Slack (usando IDs de usuário).
 - ✅ Execução automatizada via GitHub Actions com suporte a agendamento (cron).
 - ✅ Execução manual via `workflow_dispatch` do GitHub Actions.
+- ✅ Integração alternativa via Google Apps Script, Slack Workflow e Webhook.
 
 ---
 
@@ -32,6 +36,8 @@ Este projeto foi desenvolvido usando:
 - **Python 3.9**
 - **GitHub Actions** (para automação da execução)
 - **Requests** (para integração com a API do Slack)
+- **Google Apps Script** (alternativa de automação)
+- **Slack Workflow Builder** (recebimento do apresentador via Webhook)
 
 ---
 
@@ -43,8 +49,9 @@ O projeto segue a estrutura abaixo:
 .
 ├── .github/workflows/       # Configuração do GitHub Actions
 │   ├── ci.yaml              # Workflow para execução automatizada
-├── scripts/                 # Diretório dos scripts Python
+├── scripts/                 # Scripts de automação
 │   ├── daily_slack.py       # Script responsável por enviar mensagens ao Slack
+│   ├── daily_slack_bot.js   # Alternativa usando Google Apps Script
 ├── .gitignore               # Arquivo para ignorar arquivos desnecessários no repositório
 ├── LICENSE                  # Licença do projeto
 ├── README.md                # Documentação do projeto
@@ -137,6 +144,68 @@ set SLACK_TOKEN="your_token_here"
 ```sh
 python scripts/daily_slack.py
 ```
+
+---
+
+## 🔁 Opção 2: Google Apps Script + Slack Workflow + Webhook
+
+Esta opção usa o Google Apps Script apenas para escolher o apresentador do dia e disparar um Webhook. A mensagem é montada e enviada pelo Slack Workflow Builder.
+
+### 1️⃣ Criar o Workflow no Slack
+
+1. Abra o **Workflow Builder** no Slack.
+2. Crie um workflow a partir de um webhook:
+   - Adicione o gatilho **Webhook**.
+   - Crie uma variável de entrada chamada `presenter`.
+   - Use essa variável na mensagem do workflow, por exemplo:
+
+     ```text
+     Hoje quem toca a daily é: <@presenter>!
+     ```
+
+   - Configure o canal e o texto da mensagem da daily.
+3. Publique o workflow e copie a URL do webhook.
+
+> A variável `presenter` recebe o ID do usuário no Slack, como `U0C73125WUT`. A menção deve ser feita no formato `<@presenter>` dentro da mensagem do Slack.
+
+### 2️⃣ Configurar o Google Apps Script
+
+1. Acesse o [Google Apps Script](https://script.google.com/) e crie um novo projeto.
+2. Copie o conteúdo de [`scripts/daily_slack_bot.js`](scripts/daily_slack_bot.js) para o editor do Apps Script.
+3. No Apps Script, abra **Configurações do projeto → Propriedades do script**.
+4. Adicione a propriedade:
+
+   | Propriedade | Valor |
+   |-------------|-------|
+   | `SLACK_WORKFLOW_URL` | URL do webhook gerado pelo Slack Workflow |
+
+5. Atualize a lista `participants` com os IDs dos usuários do Slack:
+
+   ```javascript
+   const participants = ["U123456", "U654321", "U987654"];
+   ```
+
+6. Execute a função `configureTriggers` uma vez manualmente para autorizar o script e criar os acionadores.
+
+Os acionadores são criados para segunda a sexta-feira, às 11h, no fuso `America/Sao_Paulo`. Antes de criar novos acionadores, a função remove os acionadores existentes associados a `drawPresenter`, evitando duplicidade.
+
+### 3️⃣ Testar a integração
+
+Para testar sem aguardar o horário agendado:
+
+1. No editor do Apps Script, selecione a função `drawPresenter`.
+2. Clique em **Executar**.
+3. Confirme se o Slack Workflow foi acionado e se a mensagem foi publicada no canal configurado.
+
+O Apps Script envia um payload semelhante a:
+
+```json
+{
+  "presenter": "U123456"
+}
+```
+
+> Não compartilhe a URL do Webhook. Se ela for exposta, gere uma nova URL no Slack Workflow e atualize a propriedade `SLACK_WORKFLOW_URL`.
 
 ---
 
