@@ -26,6 +26,8 @@ O processo é totalmente automatizado por meio do GitHub Actions, permitindo a e
 - ✅ Execução automatizada via GitHub Actions com suporte a agendamento (cron).
 - ✅ Execução manual via `workflow_dispatch` do GitHub Actions.
 - ✅ Integração alternativa via Google Apps Script, Slack Workflow e Webhook.
+- ✅ Controle de eventos de calendário já notificados, evitando mensagens duplicadas.
+- ✅ Limpeza automática dos registros de notificações após 30 dias.
 
 ---
 
@@ -52,6 +54,7 @@ O projeto segue a estrutura abaixo:
 ├── scripts/                 # Scripts de automação
 │   ├── daily_slack.py       # Script responsável por enviar mensagens ao Slack
 │   ├── daily_slack_bot.js   # Alternativa usando Google Apps Script
+│   ├── out_of_office_notice_bot.js # Notificações de eventos do Google Calendar
 ├── .gitignore               # Arquivo para ignorar arquivos desnecessários no repositório
 ├── LICENSE                  # Licença do projeto
 ├── README.md                # Documentação do projeto
@@ -206,6 +209,30 @@ O Apps Script envia um payload semelhante a:
 ```
 
 > Não compartilhe a URL do Webhook. Se ela for exposta, gere uma nova URL no Slack Workflow e atualize a propriedade `SLACK_WORKFLOW_URL`.
+
+## 📆 Notificação de eventos do Google Calendar
+
+O script [`scripts/out_of_office_notice_bot.js`](scripts/out_of_office_notice_bot.js)
+consulta os eventos que começam na próxima hora e envia cada evento ao webhook do
+Slack apenas uma vez por ocorrência. Para habilitar essa integração:
+
+1. Copie o conteúdo do script para um projeto do Google Apps Script.
+2. Em **Configurações do projeto → Propriedades do script**, adicione:
+
+   | Propriedade | Valor |
+   |-------------|-------|
+   | `CALENDAR_ID` | ID do calendário que será consultado |
+   | `SLACK_WEBHOOK_URL` | URL do webhook que recebe os eventos |
+   | `NOTIFIED_EVENT` | Array JSON com os eventos já notificados |
+   | `NOTIFIED_EVENT_RETENTION_DAYS` | Quantidade de dias antes da remoção, por exemplo `30` |
+
+3. Execute `createCalendarTrigger` uma vez manualmente para criar os acionadores.
+
+O script salva todas as ocorrências notificadas na propriedade `NOTIFIED_EVENT`
+como um array JSON. O ID do evento e o horário de início identificam cada
+ocorrência. Se o webhook retornar erro, o evento não é salvo e será tentado
+novamente na próxima execução. Os registros com mais de 30 dias são removidos
+automaticamente pelo acionador diário das 3h.
 
 ---
 
